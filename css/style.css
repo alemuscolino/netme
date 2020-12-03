@@ -1,0 +1,159 @@
+	
+.container .row{
+	padding: .5em 0;
+}
+	
+#graph {
+	width: 100%;
+	height: 600px;
+	margin: auto;
+	background-position: center;
+	background-size: contain;
+	background-repeat: no-repeat;
+}
+	
+.results-container, .results-message{
+	display: none;
+}
+
+#results, #net{
+	display: none;
+	width: 100%;
+}
+
+#accordion{
+	width: 100%;
+}
+
+#log{
+	top: calc(50vh + 150px);
+	position: absolute;
+	width: 100%;
+	text-align: center;
+	font-size: 1.5em;
+	color: #009eff;
+}
+
+.loader{
+	background-image: url(../img/loader.gif);
+	background-position: center;
+	background-repeat: no-repeat;
+	position: fixed;
+	width: 100vw;
+	height: 100vh;
+	top: 0;
+	background-color: rgba(255, 255, 225, 0.63);
+	z-index: 999;
+	display: none;
+}
+
+#hidenode{
+	cursor: pointer;
+}
+
+.slidecontainer {
+	width: 100%; /* Width of the outside container */
+}
+
+.card-header{
+	cursor: pointer;
+}
+
+.annotations-list, .graph-list{
+	height: 210px;
+	overflow-y: auto;
+	padding: 5px;
+}
+
+.annotations-list table, .graph-list table{
+	width: auto;
+	
+}
+
+.annotations-list table td, .annotations-list table th, 
+.graph-list table td, .graph-list table th{
+	padding: 5px;
+	font-size: 70%;
+}
+
+.bio-edge-1{
+	background: #99ffbb;
+}
+
+.bio-edge-2{
+	background: #f99;
+}
+
+
+/* The slider itself */
+.slider {
+	-webkit-appearance: none;  /* Override default CSS styles */
+	appearance: none;
+	width: 100%; /* Full-width */
+	height: 25px; /* Specified height */
+	background: #d3d3d3; /* Grey background */
+	outline: none; /* Remove outline */
+	opacity: 0.7; /* Set transparency (for mouse-over effects on hover) */
+	-webkit-transition: .2s; /* 0.2 seconds transition on hover */
+	transition: opacity .2s;
+}
+
+/* Mouse-over effects */
+.slider:hover {
+	opacity: 1; /* Fully shown on mouse-over */
+}
+
+/* The slider handle (use -webkit- (Chrome, Opera, Safari, Edge) and -moz- (Firefox) to override default look) */
+.slider::-webkit-slider-thumb {
+	-webkit-appearance: none; /* Override default look */
+	appearance: none;
+	width: 25px; /* Set a specific slider handle width */
+	height: 25px; /* Slider handle height */
+	background: #007bff; /* Green background */
+	cursor: pointer; /* Cursor on hover */
+}
+
+.slider::-moz-range-thumb {
+	width: 25px; /* Set a specific slider handle width */
+	height: 25px; /* Slider handle height */
+	background: #007bff; /* Green background */
+	cursor: pointer; /* Cursor on hover */
+}
+
+.legend .legend-title {
+    text-align: left;
+    margin-bottom: 5px;
+    font-weight: bold;
+    font-size: 90%;
+}
+.legend .legend-scale ul {
+	margin: 0;
+	margin-bottom: 5px;
+	padding: 0;
+	float: left;
+	list-style: none;
+}
+.legend .legend-scale ul li {
+	font-size: 80%;
+	list-style: none;
+	margin-left: 0;
+	line-height: 18px;
+	margin-bottom: 2px;
+}
+.legend ul.legend-labels li span {
+	display: block;
+	float: left;
+	height: 16px;
+	width: 30px;
+	margin-right: 5px;
+	margin-left: 0;
+	border: 1px solid #999;
+}
+.legend .legend-source {
+	font-size: 70%;
+	color: #999;
+	clear: both;
+}
+.legend a {
+	color: #777;
+}
