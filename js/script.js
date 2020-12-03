@@ -308,11 +308,12 @@ function createGraph(){
 
 function displayEdges(edgeslist){
 	$("#graph-list tbody").html('');
-	$("#graph-list thead").html('<tr><th colspan="2">edge from '+edgeslist[0].data['source']+' to '+edgeslist[0].data['target']+' </th></tr><tr><th scope="col">Edge</th><th scope="col">Weight</th></tr>')
+	$("#graph-list thead").html('<tr><th colspan="3">edge from '+edgeslist[0].data['source']+' to '+edgeslist[0].data['target']+' </th></tr><tr><th scope="col">Edge</th><th scope="col">Weight</th>><th scope="col">Articles</th></tr>')
 	$.each(edgeslist, function(index, value){
 		var bio_edge = 1
 		if(value.data['bio'] > 0.2) bio_edge = 2
-		var row = '<tr class="bio-edge-'+bio_edge+'"><td>'+value.data['label']+'</td><td>'+value.data['weight']+'</td></tr>';
+		var row = '<tr class="bio-edge-'+bio_edge+'"><td>'+value.data['label']+'</td><td>'+value.data['weight']+
+		'</td><td><a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC'+value.data['aid']+'" target="_blank">'+value.data['aid']+'</a></td></tr>';
 		$("#graph-list tbody").append(row);
 	});
 }

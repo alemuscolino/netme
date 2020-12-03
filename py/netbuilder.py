@@ -24,7 +24,7 @@ class NetBuilder:
 	abstracts = {}
 	path = "/var/www/html/netme/py/";
 	tagger = None
-	cleaned_text = ''
+	cleaned_text_dict = {}
 	searchid = None
 	debug = False
 	terms = None
@@ -116,18 +116,21 @@ class NetBuilder:
 	################# ABSTRACTS ANALYSIS #################
 	
 	def analyze_abstracts(self):
-		text = ''
+		text_dict = {}
 		for index, id_abstract in enumerate(self.abstracts):
 			self.write_log("Annotating "+str(index+1)+" of "+str(len(self.abstracts))+" articles\n")
 			self.request_data(self.abstracts[id_abstract])
-			text+= self.abstracts[id_abstract]
+			text_dict[id_abstract] = self.abstracts[id_abstract]
 		self.count_spot()
 		self.write_dump(json.dumps(self.results))
 		self.results = OrderedDict(sorted(self.results.items(), key = lambda x: (getitem(x[1], 'count'), getitem(x[1], 'rho')), reverse=True)) 
 		self.results = {k:v for (k,v) in [x for x in self.results.items()][:self.max_items]}
-		tokens = word_tokenize(text)
+
 		self.write_log("Starting tokenization process ...\n")
-		edges = self.find_edges(tokens)
+		for index, id_abstract in enumerate(self.abstracts):
+			tokens = word_tokenize(text_dict[id_abstract])
+			self.find_edges(tokens, id_abstract)
+
 		i = 1
 		for r1 in self.results:
 			for r2 in self.results:
@@ -135,21 +138,23 @@ class NetBuilder:
 				self.write_log("Analyzing "+str(i)+" of "+str(len(self.results)*len(self.results))+" gene combination\n")
 				if(r1 != r2 and self.results[r1]['Word'] != self.results[r2]['Word']):			
 					pattern = rf'(?=\b{r1}\b(.*?)\b{r2}\b)'
-					matches = re.finditer(pattern, self.cleaned_text, re.IGNORECASE)
-					words = [match.group(1) for match in matches]
-					for word in words:
-						period_check = re.search(r"\.", word)
-						if not period_check:
-							tokens = word_tokenize(word)
-							if len(tokens) > 0:
-								for t in tokens:
-									if t not in self.results and t not in self.negation:
-										t = self.clean_token(t)
-										if(t):
-											self.save_edge(r1, r2, t, 1/len(tokens))
+					for index, id_abstract in enumerate(self.cleaned_text_dict):
+						matches = re.finditer(pattern, self.cleaned_text_dict[id_abstract], re.IGNORECASE)
+						words = [match.group(1) for match in matches]
+						for word in words:
+							period_check = re.search(r"\.", word)
+							if not period_check:
+								tokens = word_tokenize(word)
+								if len(tokens) > 0:
+									for t in tokens:
+										if t not in self.results and t not in self.negation:
+											t = self.clean_token(t)
+											if(t):
+												self.save_edge(id_abstract, r1, r2, t, round(1/len(tokens),3))
 		for e in range(len(self.net['edges'])):
 			bio = self.checkBioEdge(self.net['edges'][e]['data']['label'].replace("not ", ""))
 			self.net['edges'][e]['data']['bio'] = bio
+			self.net['edges'][e]['data']['aid'] = list(self.net['edges'][e]['data']['aid'])
 		self.reset_log()
 		print(json.dumps({'results':  self.results, 'net': self.net['nodes']+self.net['edges'], 'articles': self.articles_id}))
 		self.write_dump(json.dumps({'results':  self.results, 'net': self.net['nodes']+self.net['edges'], 'articles': self.articles_id}))
@@ -216,13 +221,16 @@ class NetBuilder:
 	
 	############## EDGES ANALYSIS ##################
 	
-	def find_edges(self, tokens):
+	def find_edges(self, tokens, abstract_id):
 		cleaned_tokens = {}
 		negation = False
 		pos_list =  pos_tag(tokens)
 		lemmatizer = WordNetLemmatizer()
+
+		if abstract_id not in self.cleaned_text_dict:
+			self.cleaned_text_dict[abstract_id] = ""
+
 		for token, tag in pos_list:
-			
 			if token in self.negation:
 				negation = True
 			else:
@@ -232,7 +240,7 @@ class NetBuilder:
 				token = re.sub("[\[\]]","", token)
 				pos = ''
 				if token in self.results or token == '.':
-					self.cleaned_text+= token+" ";
+					self.cleaned_text_dict[abstract_id] += token+" ";
 				if tag.startswith('VB'):
 					pos = 'v'				
 				if pos != '':	
@@ -243,7 +251,7 @@ class NetBuilder:
 					if len(lemma) > 0 and ((lemma not in string.punctuation and lemma.lower() not in  self.stop_words) or (lemma.lower() in self.negation)) and lemma not in self.results:
 						#cleaned_tokens.append(token.lower())		
 						cleaned_tokens[token] = lemma
-						self.cleaned_text+= lemma+" ";
+						self.cleaned_text_dict[abstract_id] += lemma+" ";
 		return cleaned_tokens
 	
 
@@ -256,10 +264,10 @@ class NetBuilder:
 			normalized_score = score/len(edge)
 		except:
 			normalized_score = 999
-		return normalized_score
+		return round(normalized_score, 3)
 
 	
-	def save_edge(self, spot1, spot2, edge_label, weight):
+	def save_edge(self, id_abstract, spot1, spot2, edge_label, weight):
 		foundn1 = False
 		foundn2 = False
 		n1 = self.results[spot1]['Word']
@@ -273,8 +281,11 @@ class NetBuilder:
 		bio = 0
 		new_edge = {"id": edge_id, "source": n1, "target": n2, "label": edge_label, "weight": weight, "bio": bio}
 		if (index_e > 0 and weight > self.net['edges'][index_e]['data']['weight']): #edge found with lowest weight update weight
+			new_edge['aid'] = self.net['edges'][index_e]['data']['aid']
+			new_edge['aid'].add(id_abstract)
 			self.net['edges'][index_e] = {'data': new_edge}
 		if index_e == -1: #edge not found ,new insert
+			new_edge['aid'] = {id_abstract}
 			self.net['edges'].append({'data': new_edge})
 		
 		# Node
