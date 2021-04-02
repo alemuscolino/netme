@@ -1,52 +1,58 @@
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+import treetaggerwrapper
 import nltk
-from nltk.stem.wordnet import WordNetLemmatizer
-from nltk.corpus import twitter_samples, stopwords
+from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
-from nltk import FreqDist, classify, NaiveBayesClassifier
-from nltk.tag import StanfordPOSTagger
-from nltk.tag import pos_tag
-import numpy as np
-import re, string, random, json, requests, sys, os, hashlib, time, datetime
+import re, regex, string, random, json, requests, sys, os, hashlib, time, datetime
 from collections import OrderedDict 
-from operator import getitem
+from operator import itemgetter
 import mysql.connector
 from xml.etree import ElementTree
+import fitz
+from scipy import spatial
+import math 
+import nltk.data
+import spacy
+from spacy.symbols import VERB
+from spacy.matcher import Matcher
+
 
 class NetBuilder:
 	stop_words = set(stopwords.words('english')) 
+	sent_detector = nltk.data.load('tokenizers/punkt/english.pickle')
+	nlp = spacy.load("en_core_web_sm")
+	nlp.add_pipe("merge_entities")
+	nlp.add_pipe("merge_noun_chunks")
 	negation = None
 	conjunction = None
 	bioterms = None
 	net = None
-	results = None
+	annotations = None
 	classifier = None;
-	webserver_url = "http://netme.atlas.dmi.unict.it/tagme_string";
-	abstracts = {}
+	#webserver_url = "http://131.114.50.197/tagme_string";
+	webserver_url = "http://161.97.160.81/tagme_string";
+	articles = {}
 	path = "/var/www/html/netme/py/";
 	tagger = None
-	cleaned_text = ''
+	cleaned_text = {}
 	searchid = None
 	debug = False
-	terms = None
-	max_items = None
-	retmax = None
+	post_data = None
+	tagger = None
 	articles_id = []
+	apikey = "9fa42ec62c582485fb7e6c69148eaf940308"
 	
 	def __init__(self):	
-		#tagme.GCUBE_TOKEN  =  "a51fcdf6-da3f-4964-b2b6-4fdf861f0df5-843339462"
-		#init_sentiment_classifier()
-		if(len(sys.argv) < 7):
+		if(len(sys.argv) < 1):
 			print('')
 			exit()
 		self.db_connect()
-		self.rho = float(sys.argv[1])
-		self.max_items = int(sys.argv[2])
-		self.retmax = int(sys.argv[3])
-		self.sort = sys.argv[4]
-		self.searchid = sys.argv[5]
-		self.terms = sys.argv[6]
+		self.tagger = treetaggerwrapper.TreeTagger(TAGLANG='en')
+		self.searchid = sys.argv[1]
+		## get searchid, data information are stored in request table
 		try:
-			if sys.argv[7]: self.debug = True 
+			if sys.argv[2]: self.debug = True 
 		except IndexError:
 			self.debug = False
 
@@ -54,158 +60,332 @@ class NetBuilder:
 		self.conjunction = self.get_conjunctionterms()
 		self.negation = self.get_negationterms()
 		self.reset_log()
-		self.write_log("Starting parsing operation\n")
-		if len(self.terms) > 0:
-			self.terms_search()
-		else:
-			filepath = self.path + "abstracts/" + self.searchid
-			content = open(filepath, "r")
-			self.abstracts = content.read()
-			self.abstracts = json.loads(self.abstracts)
-		#os.remove(filepath)
-		if (self.abstracts) :
-			self.make_net()
+		self.write_log("Starting parsing operation")
+		
+		#GET POST_DATA
+		self.post_data = self.get_request()
+		#self.post_data = json.loads(self.post_data['data'])
+		
+		print(self.post_data)
+		
+		if self.post_data:
+			#FREETEXT
+			if self.post_data['freetext'] is not None and self.post_data['freetext']:
+				self.articles = json.loads('{"freetext": "'+self.json_string(self.post_data['freetext'])+'"}')
+				self.articles_id.append("freetext")
+			
+			#PMC
+			if self.post_data['pmc_terms'] is not None and len(self.post_data['pmc_terms']) > 0:
+				#split query terms by ;
+				query = self.post_data['pmc_terms'].split(";")
+				for q in query:
+					self.articles_fetch(self.terms_search(q, "pmc"), "pmc")
+				
+			#PMC IDLIST
+			if self.post_data['pmc_id'] is not None and len(self.post_data['pmc_id'].split(",")) > 0:
+				self.post_data['pmc_retmax'] = len(self.post_data['pmc_id'].split(","))
+				self.articles_fetch(self.post_data['pmc_id'].split(","), "pmc")
+			
+			#PM
+			if self.post_data['pubmed_terms'] is not None and len(self.post_data['pubmed_terms']) > 0:
+				#split query terms by ;
+				query = self.post_data['pubmed_terms'].split(";")
+				for q in query:
+					self.articles_fetch(self.terms_search(q, "pubmed"), "pubmed")
+				
+			#PM IDLIST
+			if self.post_data['pubmed_id'] is not None and len(self.post_data['pubmed_id'].split(",")) > 0:
+				self.post_data['pubmed_retmax'] = len(self.post_data['pubmed_id'].split(","))
+				self.articles_fetch(self.post_data['pubmed_id'].split(","), "pubmed")
+			
+			#PDF
+			pdf_path = self.path+"pdf/"
+			for filename in os.listdir(pdf_path):
+				if filename.startswith(self.searchid):
+					self.articles["pdf|"+filename.replace(self.searchid+'_', '')] = self.parse_pdf(pdf_path+filename)
+					self.articles_id.append("pdf|"+filename.replace(self.searchid+'_', ''))
+			
+			# self.articles array contains articles fulltext, self.articles_id contains id list (format {ORIGIN_TYPE}|{id} example pdf|5.pdf, pmc|142341234, etc)
+			
+			if (self.articles) :
+				self.net = {'edges': [], 'nodes': []}
+				self.annotations = {'article': {}, 'spot_list':{}, 'word_list':{}}
+				self.make_net()
+			else:
+				print('')
 		else:
 			print('')
 
-				
-	def make_net(self):
-		self.net = {'edges': [], 'nodes': []}
-		self.results = {}
-		self.analyze_abstracts()
 		
 	################# PMC SEARCH #################
 	
-	def terms_search(self):
+	def terms_search(self, terms, dbtype = "pmc"):
 		try:
-			count = 0
-			id_list = []
-			url_search  = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pmc&term="+self.terms+"+AND+free+fulltext[filter]&retmax="+str(self.retmax*4)+"&sort="+self.sort
+			idlist = []
+			terms = terms+"+AND+free+fulltext[filter]" if (dbtype == "pmc") else terms
+			retmax = int(self.post_data[dbtype+'_retmax'])
+			sort = self.post_data[dbtype+'_sort']
+			url_search  = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?apikey="+self.apikey+"&db="+dbtype+"&term="+terms+"&retmax="+str(retmax*4)+"&sort="+sort
 			r = requests.get(url = url_search, params = '') 
 			r = ElementTree.fromstring(r.content)
 			for id_list_tag in r.findall('IdList'):
 				for id_article_tag in id_list_tag.findall('Id'):
-					id_list.append(id_article_tag.text)
+					idlist.append(id_article_tag.text)
+			return idlist
+		except Exception as e:
+			print(e)
+			self.write_log("Error in terms_search: "+str(e))
+			return ''
 			
+	def articles_fetch(self, idlist, dbtype = "pmc"):
+		try:
+			count = 0
 			url_fetch  = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
-			par = {
-				'db': 'pmc',
-				'id': ','.join(id_list),
-				'retmode' : 'xml',
-			}
-			r = requests.post(url = url_fetch, params = par) 
-			r = ElementTree.fromstring(r.content)	
-			for article_tag in r.findall('article'):
-				for body_tag in article_tag.findall('body'):
-					content = ''						
-					for p_tag in body_tag.iter('p'):
-						if p_tag.text:
-							content+= p_tag.text
-					article_id = article_tag.find(".//article-id[@pub-id-type='pmc']")
-					if article_id.text:
-						self.abstracts[article_id.text] = content
-						self.articles_id.append(article_id.text)
-						count+=1
-						if count >= self.retmax: 
-							return
+			key = dbtype+'_obj'
+			retmax = int(self.post_data[dbtype+'_retmax'])
+			n_cycle = (len(idlist) // 100) + 1
+			for n in range(n_cycle):
+				_idlist = ','.join(idlist[(n*100):((n+1)*100)])
+				par = {
+					'db': dbtype,
+					'id': _idlist,
+					'retmode' : 'xml',
+					'apikey' : self.apikey,
+				}
+				r = requests.post(url = url_fetch, params = par) 
+				r = ElementTree.fromstring(r.content)
+				
+				# if(dbtype == "pmc"):
+					# for article_tag in r.findall('article'):
+						# struct = article_tag.findall('body');
+						# if len(struct) == 0:
+							# struct = article_tag.findall('front/article-meta/abstract');
+						# for body_tag in struct:
+							# content = ''						
+							# for p_tag in body_tag.iter('p'):
+								# content+= ''.join(p_tag.itertext())
+							# article_id = article_tag.find(".//article-id[@pub-id-type='pmc']")
+							# if article_id.text and len(content) > 100 and "pmc|"+article_id.text not in self.articles_id:
+								# self.articles["pmc|"+article_id.text] = content.replace('\n', '')
+								# self.articles_id.append("pmc|"+article_id.text)
+								# count+=1
+								# if count >= retmax:
+									# return
+				if(dbtype == "pmc"):
+					for article_tag in r.findall('article'):
+						for body_tag in article_tag.findall('body'):
+							content = ''						
+							for p_tag in body_tag.iter('p'):
+								if p_tag.text:
+									content+= p_tag.text
+							article_id = article_tag.find(".//article-id[@pub-id-type='pmc']")
+							if article_id.text and len(content) > 100 and "pmc|"+article_id.text not in self.articles_id:
+								self.articles["pmc|"+article_id.text] = content.replace('\n', '')
+								self.articles_id.append("pmc|"+article_id.text)
+								count+=1
+								if count >= retmax:
+									return
+				else:
+					for article_tag in r.findall('PubmedArticle'):
+						content = ''
+						for abstract_tag in article_tag.findall('.//AbstractText'):
+							if abstract_tag.text:
+								content+= abstract_tag.text
+						article_id = article_tag.find(".//PMID")
+						if article_id.text and len(content) > 100 and "pubmed|"+article_id.text not in self.articles_id:
+							self.articles["pubmed|"+article_id.text] = content.replace('\n', '')
+							self.articles_id.append("pubmed|"+article_id.text)
+							count+=1
+							if count >= retmax: 
+								return
 			return
 		except Exception as e:
 			print(e)
+			self.write_log("Error in articles_fetch: "+str(e))
 			return
+			
+	################# PDF PARSER #################
 	
-	################# ABSTRACTS ANALYSIS #################
+	def parse_pdf(self, file):
+		try:
+			article = '';
+			doc        = fitz.open(file)
+			page_count = doc.pageCount
+			metadata   = doc.metadata
+			
+			# page creation
+			pages_blocks  = dict()
+			duplicate_blk = dict()
+			for page in range(0, page_count):
+				page_i = doc.loadPage(page)
+				for block in page_i.getText("blocks"):
+					block_coords = block[0:4]
+					if block_coords not in pages_blocks:
+						pages_blocks[block_coords] = dict()
+						pages_blocks[block_coords][page] = block[4:6]
+					else:
+						if block_coords not in duplicate_blk:
+							duplicate_blk[block_coords] = {"count": 0, "testo": block[4:6]}
+						duplicate_blk[block_coords]["count"] += 1
+
+			for key in duplicate_blk:
+				if duplicate_blk[key]["count"] > 2:
+					pages_blocks.pop(key)
+
+			for block in pages_blocks:
+				for text in pages_blocks[block]:
+					#article+= pages_blocks[block][text][0].replace('\n', ' ')
+					article+= pages_blocks[block][text][0].replace('\n', ' ').strip().replace('  ', ' ')+'. '
+			#os.remove(file)
+			return article
+		except Exception as e:
+			self.write_log("Error in parse_pdf: "+str(e))
+			return article
+			
+	def json_string(self, string):
+		string = string.replace('\r\n', ' ')
+		string = string.replace('\r', '')
+		string = string.replace('\n', '')
+		#string = string.replace("'", "\'")
+		string = string.replace('\"', '')
+		return string		
 	
-	def analyze_abstracts(self):
-		text = ''
-		for index, id_abstract in enumerate(self.abstracts):
-			self.write_log("Annotating "+str(index+1)+" of "+str(len(self.abstracts))+" articles\n")
-			self.request_data(self.abstracts[id_abstract])
-			text+= self.abstracts[id_abstract]
-		self.count_spot()
-		self.write_dump(json.dumps(self.results))
-		self.results = OrderedDict(sorted(self.results.items(), key = lambda x: (getitem(x[1], 'count'), getitem(x[1], 'rho')), reverse=True)) 
-		self.results = {k:v for (k,v) in [x for x in self.results.items()][:self.max_items]}
-		tokens = word_tokenize(text)
-		self.write_log("Starting tokenization process ...\n")
-		edges = self.find_edges(tokens)
-		i = 1
-		for r1 in self.results:
-			for r2 in self.results:
-				i+=1
-				self.write_log("Analyzing "+str(i)+" of "+str(len(self.results)*len(self.results))+" gene combination\n")
-				if(r1 != r2 and self.results[r1]['Word'] != self.results[r2]['Word']):			
-					pattern = rf'(?=\b{r1}\b(.*?)\b{r2}\b)'
-					matches = re.finditer(pattern, self.cleaned_text, re.IGNORECASE)
-					words = [match.group(1) for match in matches]
-					for word in words:
-						period_check = re.search(r"\.", word)
-						if not period_check:
-							tokens = word_tokenize(word)
-							if len(tokens) > 0:
-								for t in tokens:
-									if t not in self.results and t not in self.negation:
-										t = self.clean_token(t)
-										if(t):
-											self.save_edge(r1, r2, t, 1/len(tokens))
-		for e in range(len(self.net['edges'])):
-			bio = self.checkBioEdge(self.net['edges'][e]['data']['label'].replace("not ", ""))
-			self.net['edges'][e]['data']['bio'] = bio
-		self.reset_log()
-		print(json.dumps({'results':  self.results, 'net': self.net['nodes']+self.net['edges'], 'articles': self.articles_id}))
-		self.write_dump(json.dumps({'results':  self.results, 'net': self.net['nodes']+self.net['edges'], 'articles': self.articles_id}))
+	######### NETWORK ################
+	
+	def make_net_OLD(self):
+		for index, id_article in enumerate(self.articles):
+			self.write_log("Annotating "+str(index+1)+" of "+str(len(self.articles))+" articles")
+			self.request_data(id_article, self.articles[id_article])
+		for index_article, id_article in enumerate(self.annotations["article"]):
+			for index_annotation, annotation in enumerate(self.annotations["article"][id_article]):
+				if(index_annotation < len(self.annotations["article"][id_article]) - 1):
+					check_period = True
+					index_next_annotation = index_annotation+1
+					while_cycle = 0
+					while check_period and index_next_annotation < len(self.annotations["article"][id_article]) - 1 and while_cycle < 10:
+						while_cycle+=1
+						next_annotation = list(self.annotations["article"][id_article])[index_next_annotation]
+						index_next_annotation+=1
+						start_pos = self.annotations["article"][id_article][annotation]["start_pos"]
+						end_pos = self.annotations["article"][id_article][next_annotation]["end_pos"]
+						sentence = self.articles[id_article][start_pos:end_pos]
+						check_period = True if len(self.sent_detector.tokenize(sentence.strip())) == 1 else False
+						if check_period:
+							spot1 = self.annotations["article"][id_article][annotation]
+							spot2 = self.annotations["article"][id_article][next_annotation]
+							total_words = len(re.findall(r'\w+', self.articles[id_article]))
+							self.find_edges(id_article, sentence, spot1, spot2, total_words)
 		
-	def count_spot(self):
-		for r in self.results:
-			self.results[r]['count'] = 0
-			self.results[r]['articles'] = []
-			for id_abstract in self.abstracts:
-				pattern = rf'(?=[\W*?]{r}[\W*?])'
-				matches = re.findall(pattern, self.abstracts[id_abstract])
-				if(len(matches) > 0):
-					self.results[r]['count']+= len(matches)
-					self.results[r]['articles'].append(id_abstract)
+		for e in range(len(self.net['edges'])):
+			bio = self.check_bio_edge(self.net['edges'][e]['data']['label'].replace("not ", ""))
+			self.net['edges'][e]['data']['bio'] = bio
+			self.net['edges'][e]['data']['aid'] = list(self.net['edges'][e]['data']['aid'])
+			#calc weight
+			tf_medium = 0
+			for index, id_article in enumerate(self.net['edges'][e]['data']['tf']):
+				tf_medium+= self.net['edges'][e]['data']['tf'][id_article]['tf']/self.net['edges'][e]['data']['tf'][id_article]['total_words']
+			tf = tf_medium/len(self.net['edges'][e]['data']['tf'])
+			idf = math.log(len(self.articles)/len(self.net['edges'][e]['data']['tf']))
+			self.net['edges'][e]['data']['weight'] = tf*idf if idf > 0 else tf
+		self.net['nodes'] = sorted(self.net['nodes'],  key=lambda x: x['data']['size'], reverse=True)
+		self.reset_log()
+		dump = {'annotations':  self.annotations, 'nodes': self.net['nodes'], 'edges': self.net['edges'], 'articles': self.articles_id}
+		dump = json.dumps(dump, default=self.set_default)
+		print(dump)
+		self.save_dump(dump)
+	
+	def make_net(self):
+		sentences_list = {}
+		for index, id_article in enumerate(self.articles):
+			self.write_log("ANNOTATING "+str(index+1)+" of "+str(len(self.articles))+" articles")
+			#Tokenize article by period and re-join (Remove extra space between period)
+			sentences_list[id_article] = self.sent_detector.tokenize(self.articles[id_article])
+			self.articles[id_article] = ''.join(sentences_list[id_article])
+			self.request_data(id_article, self.articles[id_article])
+		for index_article, id_article in enumerate(self.annotations["article"]):
+			sentence_start = 0
+			total_words = len(re.findall(r'\w+', self.articles[id_article]))
+			for sentence in sentences_list[id_article]:
+				sentence_end = sentence_start + len(sentence) -1
+				spot_list = []
+				for index_annotation, annotation in enumerate(self.annotations["article"][id_article]):
+					if annotation >= sentence_start and annotation < sentence_end:
+						spot_list.append(self.annotations["article"][id_article][annotation])
+				self.find_edges(id_article, sentence, spot_list, total_words)
+				sentence_start = sentence_end
+		for e in range(len(self.net['edges'])):
+			bio = self.check_bio_edge(self.net['edges'][e]['data']['label'].replace("not ", ""))
+			self.net['edges'][e]['data']['bio'] = bio
+			self.net['edges'][e]['data']['aid'] = list(self.net['edges'][e]['data']['aid'])
+			#calc weight
+			tf_medium = 0
+			for index, id_article in enumerate(self.net['edges'][e]['data']['tf']):
+				tf_medium+= self.net['edges'][e]['data']['tf'][id_article]['tf']/self.net['edges'][e]['data']['tf'][id_article]['total_words']
+			tf = tf_medium/len(self.net['edges'][e]['data']['tf'])
+			idf = math.log(len(self.articles)/len(self.net['edges'][e]['data']['tf']))
+			self.net['edges'][e]['data']['weight'] = tf*idf if idf > 0 else tf
+		self.net['nodes'] = sorted(self.net['nodes'],  key=lambda x: x['data']['size'], reverse=True)
+		self.reset_log()
+		dump = {'annotations':  self.annotations, 'nodes': self.net['nodes'], 'edges': self.net['edges'], 'articles': self.articles_id}
+		dump = json.dumps(dump, default=self.set_default)
+		print(dump)
+		self.save_dump(dump)
+		
+	def set_default(self, obj):
+		if isinstance(obj, set):
+			return list(obj)
+		raise TypeError
 	
 	################# ANNOTATION ########################
 	
-	def request_data(self, name):
-		# self.results = {'pten': {'wid': '3001606', 'spot': 'PTEN', 'rho': '0.68882173', 'Word': 'PTEN', 'categories': ['gene', 'proteine']}, 'dmi': {'wid':  '372611', 'spot': 'DMI', 'rho':  '0.5', 'Word': 'Desipramine', 'categories': ['drug']}, 'src': {'wid': '3002148', 'spot': 'SRC', 'rho': '0.60260934', 'Word': 'SRC', 'categories': ['disease']}, 'icd': {'wid': '3021135', 'spot': 'ICD', 'rho': '0.25', 'Word': 'icd', 'categories': ['proteine']}, 'rpe': {'wid': '3002757', 'spot': 'RPE', 'rho': '0.58621234', 'Word': 'RPE', 'categories': ['gene']}}
-		# return 0
-		names = self.split_abstract(name)
-		i = 0
-		for n in names:
-			par = {'name': n}
-			i+=1
-			try:
-				r = requests.post(url = self.webserver_url, params = par) 
-				data = r.json() 
-				#response {Word: GOword, rho, spot: word in text, wid}
-				if data['response']:
-					#print("data", data)
-					self.save_results(data['response'])
-			except:
-				data = None
-		return 0
+	def request_data(self, id_article, article):
+		try:
+			data = None
+			annotations = self.get_annotations(id_article)
+			if annotations:
+				try:
+					data = json.loads(annotations['data'])
+					if data:
+						self.save_annotations(id_article, data)
+						return
+				except Exception as e:
+						data = None
+			par = {'name': article}
+			r = requests.post(url = self.webserver_url, data = par, timeout=1800) 
+			data = r.json() 
+			if data['response']:
+				self.save_annotations_db(id_article, json.dumps(data['response']))
+				self.save_annotations(id_article, data['response'])
+			return
+		except Exception as e:
+			self.write_log("Error in request_data: "+str(e))
 
-	def split_abstract(self, name):
-		names = []
-		i = 0
-		names.append('')
-		for sentence in name.split(". "):
-			if len(names[i]) < 5000:
-				names[i] = names[i] + sentence
-			else:
-				i = i+1
-				names.append(sentence)
-		return names
-		
-	def save_results(self, data):
-		for kd, vd in enumerate(data):
-			if vd['spot'] in self.results: #set rho to new value if greater than old
-				if (float(vd['rho']) > float(self.results[vd['spot']]['rho']) and float(vd['rho']) > float(self.rho)):
-					self.results[vd['spot']]['rho'] = vd['rho']
-			elif float(vd['rho']) > float(self.rho):
-				self.results[vd['spot']] = vd
-				
+	def save_annotations(self, id_article, data):
+		self.annotations['article'][id_article] = {}
+		for key, annotation in enumerate(data):
+			#store in annotation word_list and spot_list
+			try:
+				if(len(annotation["categories"]) == 0):
+					annotation["categories"] = ["other"]
+				if(len(annotation["categories"]) > 0 and annotation["categories"][0] == ''):
+					annotation["categories"] = ["other"]
+				if(annotation["Word"] in self.annotations['word_list']):
+					self.annotations['word_list'][annotation["Word"]]['count']+= 1
+				else:
+					self.annotations['word_list'][annotation["Word"]] = annotation.copy()
+					self.annotations['word_list'][annotation["Word"]]['count'] = 1
+				#store in annotation spot_list
+				if(annotation["spot"] in self.annotations['spot_list']):
+					self.annotations['spot_list'][annotation["spot"]]['count']+= 1
+				else:
+					self.annotations['spot_list'][annotation["spot"]] = annotation.copy()
+					self.annotations['spot_list'][annotation["spot"]]['count'] = 1
+				#store in annotation list by article
+				self.annotations['article'][id_article][annotation["start_pos"]] = annotation.copy();
+				self.write_log("Save annotation: "+annotation["Word"])	
+			except Exception as e:
+				self.write_log("Error in save_annotations: "+str(e))	
+	
 	def clean_token(self, token):
 		token = token.replace('NOT_', 'not ')
 		not_alpha = re.findall(r'[^a-zA-Z\d\s:]', token)
@@ -216,38 +396,122 @@ class NetBuilder:
 	
 	############## EDGES ANALYSIS ##################
 	
-	def find_edges(self, tokens):
-		cleaned_tokens = {}
+	def find_edges_old(self, id_article, sentence, spot1, spot2, total_words):
 		negation = False
-		pos_list =  pos_tag(tokens)
-		lemmatizer = WordNetLemmatizer()
-		for token, tag in pos_list:
-			
-			if token in self.negation:
-				negation = True
-			else:
-				token = re.sub('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+#]|[!*\(\),]|'\
-							    '(?:%[0-9a-fA-F][0-9a-fA-F]))+','', token)
-				token = re.sub("(@[A-Za-z0-9_]+)","", token)
-				token = re.sub("[\[\]]","", token)
-				pos = ''
-				if token in self.results or token == '.':
-					self.cleaned_text+= token+" ";
-				if tag.startswith('VB'):
-					pos = 'v'				
-				if pos != '':	
-					lemma = lemmatizer.lemmatize(token, pos)
-					if negation:
-						lemma = 'NOT_'+lemma
-						negation = False
-					if len(lemma) > 0 and ((lemma not in string.punctuation and lemma.lower() not in  self.stop_words) or (lemma.lower() in self.negation)) and lemma not in self.results:
-						#cleaned_tokens.append(token.lower())		
-						cleaned_tokens[token] = lemma
-						self.cleaned_text+= lemma+" ";
-		return cleaned_tokens
+		#check if spot1 and spot2 are in sentence (Da rimuovere se Antonio sistema)
+		if spot1['spot'] not in sentence or spot2['spot'] not in sentence:
+			return
+		sub_sentence = sentence.replace(spot1['spot'], "").replace(spot2['spot'], "")
+		pos_list = self.tagger.tag_text(sub_sentence)
+		pos_list = treetaggerwrapper.make_tags(pos_list)
+		if len(pos_list) <= 10 and not self.check_exception(sub_sentence):
+			self.write_log("Finding edges for: "+sentence)
+			for p in pos_list:
+				if len(p) > 1:
+					token = p[0]
+					tag = p[1]
+					lemma = p[2]
+					if lemma in self.negation:
+						negation = True
+					else:
+						# token = re.sub('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+#]|[!*\(\),]|'\
+										# '(?:%[0-9a-fA-F][0-9a-fA-F]))+','', token)
+						# token = re.sub("(@[A-Za-z0-9_]+)","", token)
+						# token = re.sub("[\[\]]","", token)
+						pos = ''
+						if tag.startswith('V'):	
+							if negation:
+								lemma = 'NOT_'+lemma
+								negation = False
+							#if len(lemma) > 0 and ((lemma not in string.punctuation and lemma.lower() not in  self.stop_words) or (lemma.lower() in self.negation)) and lemma not in self.annotations["spot_list"] and lemma not in self.annotations["word_list"] :
+							if len(lemma) > 0 and ((lemma not in string.punctuation and lemma.lower() not in  self.stop_words) or (lemma.lower() in self.negation)) and len([val for key, val in self.annotations["spot_list"].items() if token in key]) == 0 and len([val for key, val in self.annotations["word_list"].items() if token in key]) == 0 :
+								if self.passive_form(pos_list):
+									self.save_edge(id_article, spot2, spot1, lemma, total_words, sentence)
+								else:
+									self.save_edge(id_article, spot1, spot2, lemma, total_words, sentence)
 	
-
-	def checkBioEdge(self, edge):
+	def find_edges(self, id_article, sentence, spot_list, total_words):
+		self.write_log("FINDING edges for: "+sentence)
+		doc = self.nlp(sentence)
+		verbs = {}
+		for w in doc:
+			if w.pos == VERB:
+				verbs[w.text] = []
+				self.recoursive_search(w, w.text, verbs, 0)
+		for v in verbs:
+			sub = None
+			dob = None
+			for s in spot_list:
+				for e in verbs[v]:
+					if s["spot"] in e:
+						if sub is not None:
+							dob = s
+							if self.passive_form(sentence):
+								self.save_edge(id_article, dob, sub, v, total_words, sentence)
+							else:
+								self.save_edge(id_article, sub, dob, v, total_words, sentence)
+							dob = None
+						if sub is None:
+							sub = s
+					
+	def recoursive_search(self, el, verb, verbs, count):
+		count+=1
+		if count > 2:
+			return
+		for child in el.children:
+			verbs[verb].append(child.text)
+			self.recoursive_search(child, verb, verbs, count)
+	
+	def passive_form(self, sentence):
+		matcher = Matcher(self.nlp.vocab)
+		doc = self.nlp(sentence)
+		passive_rule = [{'DEP':'nsubjpass'},{'DEP':'aux','OP':'*'},{'DEP':'auxpass'},{'TAG':'VBN'}]
+		matcher.add('Passive', [passive_rule])
+		matches = matcher(doc)
+		if len(matches):
+			return True
+		return False
+	
+	def passive_form_old(self, pos_list):
+		tags = []
+		lemmas = []
+		for t in pos_list:
+			if len(t) == 3:
+				lemmas.append(t[2])
+				tags.append(t[1])
+		foundbe = False
+		foundv = False
+		for t in range(len(tags)):
+			#search for Verbs + by lemma
+			if lemmas[t] == 'by' and t != 0 and tags[t-1].startswith("V"):
+				return True
+			#search for tobe + nongerund
+			if foundbe and tags[t].startswith("V") and not tags[t].startswith("VBG"):
+				foundv = True
+			if not foundv and tags[t].startswith("VB") and not tags[t].startswith("VBG"):
+				foundbe = True
+			if foundv and foundbe:
+				return True
+		return False	
+	
+	def check_exception(self, sentence):
+		#check parentheses
+		is_an_exception = False
+		parentheses = ["{", "[", "(", ")", "]", "}"]
+		if any(x in sentence for x in parentheses):
+			result = regex.search(r'''(?<rec>\((?:[^()]++|(?&rec))*\))''',sentence,flags=regex.VERBOSE)
+			if result is not None:
+				is_an_exception = False
+			else:
+				is_an_exception = True
+		else:
+			is_an_exception = False
+		#check ,
+		if "," in sentence or ";" in sentence:
+			is_an_exception = True
+		return is_an_exception
+	
+	def check_bio_edge(self, edge):
 		score = len(edge);
 		for e in self.bioterms:
 			if nltk.edit_distance(e, edge) < score:
@@ -256,37 +520,75 @@ class NetBuilder:
 			normalized_score = score/len(edge)
 		except:
 			normalized_score = 999
-		return normalized_score
-
-	
-	def save_edge(self, spot1, spot2, edge_label, weight):
-		foundn1 = False
-		foundn2 = False
-		n1 = self.results[spot1]['Word']
-		n2 = self.results[spot2]['Word']
-		index_e = -1
-		edge_id = hashlib.md5((n1+n2+edge_label).encode('utf-8')).hexdigest()
-		#edge
-		for index, edge in enumerate(self.net['edges']):
-			if (edge['data']["source"] == n1 and edge['data']["target"] == n2 and edge['data']['label'] == edge_label) :
-				index_e = index		
-		bio = 0
-		new_edge = {"id": edge_id, "source": n1, "target": n2, "label": edge_label, "weight": weight, "bio": bio}
-		if (index_e > 0 and weight > self.net['edges'][index_e]['data']['weight']): #edge found with lowest weight update weight
-			self.net['edges'][index_e] = {'data': new_edge}
-		if index_e == -1: #edge not found ,new insert
-			self.net['edges'].append({'data': new_edge})
+		return round(normalized_score, 3)
 		
-		# Node
-		for node in self.net['nodes']:
-			if (node['data']['label'] == n1):
-				foundn1 = True
-			if (node['data']['label'] == n2):
+		
+	def save_edge(self, id_article, spot1, spot2, edge_label, total_words, sentence):
+		try:
+			foundn1 = False
+			foundn2 = False
+			# n1 = self.annotations['spot_list'][spot1]['Word']
+			# n2 = self.annotations['spot_list'][spot2]['Word']
+			n1 = spot1['Word']
+			n2 = spot2['Word']
+			#self.write_log("Saving edges for: "+sentence+" - "+n1+" "+edge_label+" "+n2)
+			index_e = -1
+			edge_id = hashlib.md5((n1+n2+edge_label).encode('utf-8')).hexdigest()
+			#edge
+			for index, edge in enumerate(self.net['edges']):
+				if(edge['data']['id'] == edge_id):
+					index_e = index		
+			bio = 0
+			new_edge = {"id": edge_id, "source": n1, "target": n2, "label": edge_label, "weight": 0, "mrho": 0, "bio": bio}
+			if index_e == -1: #edge not found ,new insert
+				new_edge['aid'] = {id_article}
+				#mrho
+				#new_edge['mrho'] = (float(self.annotations['spot_list'][spot1]['rho'])+float(self.annotations['spot_list'][spot2]['rho']))/2
+				new_edge['mrho'] = (float(spot1['rho'])+float(spot2['rho']))/2
+				new_edge['tf'] = {}
+				new_edge['tf'][id_article] = {'tf': 1, 'total_words': total_words}
+				new_edge['sentences'] = {}
+				new_edge['sentences'][id_article] = []
+				new_edge['sentences'][id_article].append(sentence)
+				self.write_log("INSERT edge : "+sentence+" - "+n1+" "+edge_label+" "+n2)
+				self.net['edges'].append({'data': new_edge})
+			else:
+				new_edge['aid'] = self.net['edges'][index_e]['data']['aid']
+				new_edge['aid'].add(id_article)
+				new_edge['tf'] = self.net['edges'][index_e]['data']['tf']
+				new_edge['sentences'] = self.net['edges'][index_e]['data']['sentences']
+				#mrho
+				new_edge['mrho'] = ((float(spot1['rho'])+float(spot2['rho']))/2 + self.net['edges'][index_e]['data']['mrho'])/2
+				#TFIDF PARAMETERS
+				if id_article not in new_edge['tf']:
+					new_edge['tf'][id_article] = {'tf': 1, 'total_words': total_words}
+				else:
+					new_edge['tf'][id_article]['tf']+=1 
+				#Sentences
+				if id_article not in new_edge['sentences']:
+					new_edge['sentences'][id_article] = []
+				if sentence not in new_edge['sentences'][id_article]:
+					new_edge['sentences'][id_article].append(sentence)
+				self.write_log("UPDATE edge : "+sentence+" - "+n1+" "+edge_label+" "+n2)
+				self.net['edges'][index_e] = {'data': new_edge}
+				
+				
+			# Node
+			if(n1 == n2):
 				foundn2 = True
-		if not foundn1:
-			self.net['nodes'].append({'data': {"id": n1, "label": n1, "size": 10, "spot": spot1}})
-		if not foundn2:
-			self.net['nodes'].append({'data': {"id": n2, "label": n2, "size": 10, "spot": spot2}})
+			for node in self.net['nodes']:
+				if (node['data']['label'] == n1):
+					foundn1 = True
+					node['data']['size']+=1
+				if (node['data']['label'] == n2):
+					foundn2 = True
+					node['data']['size']+=1
+			if not foundn1:
+				self.net['nodes'].append({'data': {"id": n1, "label": n1, "size": 1, "spot": spot1}})
+			if not foundn2:
+				self.net['nodes'].append({'data': {"id": n2, "label": n2, "size": 1, "spot": spot2}})
+		except Exception as e:
+			self.write_log("Error in save_edge: "+str(e))
 		
 	############## DATABASE ##################
 			
@@ -303,7 +605,7 @@ class NetBuilder:
 			for r in res:
 				terms.append(r['term']) 
 		except Exception as e:
-			print(e)
+			self.write_log("Error in get_conjunctionterms: "+str(e))
 		return terms
 	
 	def get_negationterms(self):
@@ -316,7 +618,7 @@ class NetBuilder:
 			for r in res:
 				terms.append(r['term']) 
 		except Exception as e:
-			print(e)
+			self.write_log("Error in get_negationterms: "+str(e))
 		return terms
 		
 	def get_bioterms(self):
@@ -329,8 +631,78 @@ class NetBuilder:
 			for r in res:
 				terms.append(r['term']) 
 		except Exception as e:
-			print(e)
+			self.write_log("Error in get_bioterms: "+str(e))
 		return terms
+		
+	def get_request(self):
+		sql = "SELECT * FROM netme.requests WHERE id = %s"
+		sql_data = (self.searchid,)
+		try:
+			cursor = self.db.cursor(dictionary=True)
+			cursor.execute(sql, sql_data)
+			res = cursor.fetchall()
+			for r in res:
+				return r
+		except Exception as e:
+			self.write_log("Error in get_requests: "+str(e))
+		return None
+	
+	def get_dump(self):
+		sql = "SELECT * FROM netme.dumps WHERE id = %s"
+		sql_data = (self.searchid,)
+		try:
+			cursor = self.db.cursor(dictionary=True)
+			cursor.execute(sql, sql_data)
+			res = cursor.fetchall()
+			for r in res:
+				return r
+		except Exception as e:
+			self.write_log("Error in get_dump: "+str(e))
+		return None
+	
+	def save_dump(self, text):
+		self.db.reconnect()
+		sql = "INSERT INTO netme.dumps (id, data) VALUES (%s, %s) ON DUPLICATE KEY UPDATE data = %s, update_on = CURRENT_TIMESTAMP()"
+		sql_data = (self.searchid, text, text)
+		try:
+			cursor = self.db.cursor(dictionary=True)
+			cursor.execute(sql, sql_data)
+			self.db.commit()
+			self.db.close()
+			return True
+		except Exception as e:
+			self.write_log("Error in save_dump: "+str(e))
+		return False
+	
+	def save_annotations_db(self, id_article, text):
+		sql = "INSERT INTO netme.annotations (id, id_article, data) VALUES (%s, %s, %s)"
+		sql_data = (self.searchid, id_article, text)
+		try:
+			cursor = self.db.cursor(dictionary=True)
+			cursor.execute(sql, sql_data)
+			self.db.commit()
+			return True
+		except Exception as e:
+			self.write_log("Error in save_annotations_db: "+str(e))
+		return False
+		
+	def get_annotations(self, id_article):
+		if "pmc|" in id_article or "pubmed|" in id_article:
+			#I can search between id_article directly
+			sql = "SELECT * FROM netme.annotations WHERE id_article = %s"
+			sql_data = (id_article,)
+		else:
+			sql = "SELECT * FROM netme.annotations WHERE id = %s AND id_article = %s"
+			sql_data = (self.searchid, id_article)
+		try:
+			cursor = self.db.cursor(dictionary=True)
+			cursor.execute(sql, sql_data)
+			res = cursor.fetchall()
+			for r in res:
+				return r
+		except Exception as e:
+			self.write_log("Error in get_annotations: "+str(e))
+		return None
 	
 	############## LOG ##################
 		
@@ -340,19 +712,16 @@ class NetBuilder:
 			os.remove(logfile_path)
 		
 	def write_log(self, text):
-		logfile_path = self.path+"logs/"+self.searchid
-		file = open(logfile_path, 'a') 
-		file.write(text) 
-		file.close() 
-		time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-		text = time + ":\t\t" + text + "\n"
-		if(self.debug):
-			print(text)
-		
-	def write_dump(self, text):
-		dumpfile_path = self.path+"dumps/"+self.searchid
-		file = open(dumpfile_path, 'w') 
-		file.write(text) 
-		file.close() 
-		
+		try:
+			logfile_path = self.path+"logs/"+self.searchid
+			file = open(logfile_path, 'a') 
+			time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+			text = time + ":\t\t" + text + "\n"
+			file.write(text) 
+			file.close() 
+			if(self.debug):
+				print(text+ "\n")
+		except Exception as e:
+			print(str(e))
+			
 n = NetBuilder();
