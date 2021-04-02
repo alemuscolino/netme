@@ -1,25 +1,48 @@
 <?
-include_once('../config.php'); 
+include_once(dirname(__FILE__) .'/../class/config.php'); 
+$session = new Session();
+$session->start();
 ?>
 <html>
 	<head>
 		<meta charset="utf-8">
+		<link rel="icon" href="favicon.ico" type="image/x-icon">
 		<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 		<title>NetME - On-the-fly knowledge network construction from biomedical literature</title>
-		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
-		<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
-		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
-		<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.15.2/cytoscape.min.js"></script>
-		<link rel="stylesheet" href="css/style.css">
 
+		<script src="<?=$base_url?>js/jquery-3.5.1.js"></script>
+		<script src="<?=$base_url?>js/popper.min.js"></script>
+		<script src="<?=$base_url?>js/bootstrap.min.js"></script>
+		<script src="<?=$base_url?>js/cytoscape.min.js"></script>
+		<script src="<?=$base_url?>js/canvas2svg.js"></script>
+		<script src="<?=$base_url?>js/cytoscape-svg.js"></script>
+
+		<link rel="stylesheet" href="<?=$base_url?>css/fontawesome/css/all.css">
+		<link rel="stylesheet" href="<?=$base_url?>css/bootstrap.min.css">
+		<link rel="stylesheet" href="<?=$base_url?>css/style.css">
+		
+		<!-- Datatables -->
+		<link href="<?=$base_url?>vendor/datatables/dataTables.bootstrap4.min.css" rel="stylesheet" type="text/css">
+		<link href="<?=$base_url?>vendor/datatables/responsive.dataTables.min.css" rel="stylesheet" type="text/css">
+		<link href="<?=$base_url?>vendor/datatables/rowReorder.dataTables.min.css" rel="stylesheet" type="text/css">
+		<link href="<?=$base_url?>vendor/datatables/select2.min.css" rel="stylesheet" type="text/css">
+		<script src="<?=$base_url?>vendor/datatables/jquery.dataTables.min.js"></script>
+		<script src="<?=$base_url?>vendor/datatables/dataTables.bootstrap4.min.js"></script>
+		<script src="<?=$base_url?>vendor/datatables/dataTables.responsive.min.js"></script>
+		<script src="<?=$base_url?>vendor/datatables/dataTables.rowReorder.min.js"></script>
+		<script src="<?=$base_url?>vendor/datatables/select2.min.js"></script>
+		
+		<script>
+		var baseUrl = "<?=$base_url?>";
+		var categories = JSON.parse('<?=json_encode($categories)?>');
+		var palette = JSON.parse('<?=json_encode($palette)?>');
+		</script>
 	</head>
 	<body>
 		<div class="container-fluid p-0">
 			<nav class="navbar navbar-expand-lg navbar-light bg-light">
 				<div class="container">
-					<a class="navbar-brand" href="#"><img src="img/logo.png" width="200"></a>
+					<a class="navbar-brand" href="<?=$base_url?>"><img src="img/logo.png" width="200"></a>
 					<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
 						<span class="navbar-toggler-icon"></span>
 					</button>
@@ -32,7 +55,7 @@ include_once('../config.php');
 								<a class="nav-link" href="<?=$base_url?>netme.php">NetMe</a>
 							</li>
 							<li class="nav-item">
-								<a class="nav-link" href="<?=$base_url?>publications.php">Publications</a>
+								<a class="nav-link" href="https://link.springer.com/chapter/10.1007/978-3-030-65351-4_31">Publications</a>
 							</li>
 						</ul>
 					</div>
