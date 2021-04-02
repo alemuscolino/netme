@@ -1,3 +1,14 @@
+#pmc_options, #pmc_alloptions, #pmc_idoptions, #pubmed_options, #pubmed_alloptions, #pubmed_idoptions, #freetext_options, #pdf_options{
+	display: none;
+}
+
+#accordion-results .card{
+	margin-top: 25px;
+}
+
+#accordion-results .card .collapse{
+	padding: 10px;
+}
 	
 .container .row{
 	padding: .5em 0;
@@ -5,14 +16,14 @@
 	
 #graph {
 	width: 100%;
-	height: 600px;
+	height: 700px;
 	margin: auto;
 	background-position: center;
 	background-size: contain;
 	background-repeat: no-repeat;
 }
 	
-.results-container, .results-message{
+.results-container, .results-message, .results-error{
 	display: none;
 }
 
@@ -47,8 +58,13 @@
 	display: none;
 }
 
-#hidenode{
+.hidenode, .hidecat{
 	cursor: pointer;
+}
+
+.hidecat{
+	float: left;
+    margin: 2px 5px;
 }
 
 .slidecontainer {
@@ -60,7 +76,7 @@
 }
 
 .annotations-list, .graph-list{
-	height: 210px;
+	height: 250px;
 	overflow-y: auto;
 	padding: 5px;
 }
@@ -74,6 +90,10 @@
 .graph-list table td, .graph-list table th{
 	padding: 5px;
 	font-size: 70%;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-width: 150px;
 }
 
 .bio-edge-1{
@@ -90,7 +110,8 @@
 	-webkit-appearance: none;  /* Override default CSS styles */
 	appearance: none;
 	width: 100%; /* Full-width */
-	height: 25px; /* Specified height */
+	height: 10px; /* Specified height */
+	border-radius: 5px;
 	background: #d3d3d3; /* Grey background */
 	outline: none; /* Remove outline */
 	opacity: 0.7; /* Set transparency (for mouse-over effects on hover) */
@@ -107,15 +128,17 @@
 .slider::-webkit-slider-thumb {
 	-webkit-appearance: none; /* Override default look */
 	appearance: none;
-	width: 25px; /* Set a specific slider handle width */
-	height: 25px; /* Slider handle height */
+	width: 15px; /* Set a specific slider handle width */
+	height: 15px; /* Slider handle height */
+	border-radius: 50%;
 	background: #007bff; /* Green background */
 	cursor: pointer; /* Cursor on hover */
 }
 
 .slider::-moz-range-thumb {
-	width: 25px; /* Set a specific slider handle width */
-	height: 25px; /* Slider handle height */
+	width: 15px; /* Set a specific slider handle width */
+	height: 15px; /* Slider handle height */
+	border-radius: 50%;
 	background: #007bff; /* Green background */
 	cursor: pointer; /* Cursor on hover */
 }
@@ -126,25 +149,29 @@
     font-weight: bold;
     font-size: 90%;
 }
-.legend .legend-scale ul {
+.legend .legend-scale .legend-labels {
 	margin: 0;
 	margin-bottom: 5px;
 	padding: 0;
 	float: left;
 	list-style: none;
 }
-.legend .legend-scale ul li {
+.legend .legend-scale .legend-labels div {
 	font-size: 80%;
 	list-style: none;
 	margin-left: 0;
-	line-height: 18px;
+	line-height: 15px;
 	margin-bottom: 2px;
+	white-space: nowrap;
+    overflow-x: hidden;
+    text-overflow: ellipsis;
 }
-.legend ul.legend-labels li span {
+.legend .legend-labels div span {
 	display: block;
 	float: left;
 	height: 16px;
-	width: 30px;
+	width: 16px;
+	border-radius: 50%;
 	margin-right: 5px;
 	margin-left: 0;
 	border: 1px solid #999;
@@ -156,4 +183,59 @@
 }
 .legend a {
 	color: #777;
+}
+
+.highlight {
+    background-color: yellow;
+}
+
+.log-container{
+	white-space: pre-line;
+	padding: 1em;
+	border: 0.15em solid #ccc;
+	background: #000;
+	color: #4caf50;
+	border-radius: 0.25em;
+	display: none;
+	background-image: url(../img/loader.gif);
+	background-repeat: no-repeat;
+	background-position-x: calc(100% - 1em);
+	background-size: 2em;
+	background-position-y: calc(100% - 1em);
+	height: 40vh;
+    overflow-y: scroll;
+}
+
+/*Mod datatables*/
+div.dataTables_wrapper div.dataTables_filter {
+    text-align: none;
+}
+
+div.dataTables_wrapper div.dataTables_filter label {
+    font-weight: normal!important;
+    white-space: nowrap!important;
+    text-align: left!important;
+}
+
+div.dataTables_wrapper div.dataTables_filter input {
+    margin-left: 0!important;
+    display: block!important;
+    width: 100%!important;
+}
+
+div.dataTables_wrapper td{
+    white-space: nowrap;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+
+
+div.select-source .source .button{
+    cursor: pointer;
+}
+
+.my-shadow{
+	text-shadow: 10px 10px 105px #007bff;
 }
