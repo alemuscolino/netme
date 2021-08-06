@@ -1,6 +1,8 @@
 import sys
 import spacy
 from   nltk.corpus import stopwords
+from spacy.matcher import Matcher
+
 stop_words = stopwords.words("english")
 sys.path.append("./")
 from   abbreviation_function  import abbreviation_handler
@@ -63,12 +65,30 @@ def create_final_annotation(elaborated_annotation, annotation_to_add, annotation
     return final_annotations
 
 
+def r(pos, op = None):
+    return {"POS": pos, "OP" : op} if op is not None else {"POS": pos}
+
+
+def verb_extraction(nlp, doc):
+    matcher = Matcher(nlp.vocab)
+    matcher.add("VERB", [[
+        r("AUX", "?"), r("PART", "?"), r("AUX", "?"),
+        r("ADP", "?"), r("ADV", "?"), r("VERB", "+"), r("ADP", "?")
+    ]])
+    matches  = matcher(doc)
+    spans    = [doc[start:end] for _, start, end in matches]
+    spans    = spacy.util.filter_spans(spans)
+    verb_idx = {doc[pos].idx: span.start for span in spans for pos in range(span.start, span.end)}
+    return verb_idx
+
+
 # MAIN FUNCTION
 def build_final_annotations(article, article_annotation):
     nlp, doc = spacy_init(article)
     long_short_occurrences = abbreviation_handler(nlp, doc)
 
-    elaborated_annotations = joining_annotation(article_annotation, article)
+    verb_idx = verb_extraction(nlp, doc)
+    elaborated_annotations = joining_annotation(article_annotation, article, verb_idx)
     annotation_idx, rev_annotation = create_annotation_index(elaborated_annotations)
     abbreviation_idx, rev_abbreviation, idx_abbreviation = create_long_term_idx(long_short_occurrences, doc)
 

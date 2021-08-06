@@ -40,6 +40,11 @@ def create_annotation_struct_2(text, position, annotation):
 
 # It update an annotation on the basis of the new data (used during annotation joining)
 def update_annotation_structure(record, old_annotation, text):
+    condition_1 = old_annotation["start_pos"] < record["start_pos"]
+    condition_2 = old_annotation["end_pos"] < record["end_pos"]
+    start_pos = old_annotation["start_pos"] if condition_1 else record["start_pos"]
+    end_pos = record["end_pos"] if condition_2 else old_annotation["end_pos"]
+
     old_annotation["spot"]       = text[old_annotation["start_pos"]:record["end_pos"]]
     old_annotation["end_pos"]    = record["end_pos"]
     old_annotation["categories"] = old_annotation["categories"].union(set(record["categories"]))
@@ -69,14 +74,19 @@ def word_elaboration(annotation):
 
 
 # It merge adjacent terms
-def joining_annotation(annotations_dict, text):
+def joining_annotation(annotations_dict, text, verbs_idx):
     joined_annotations = []
     last_annotation    = None
     last_position      = -10
     for annotation_data in annotations_dict:
+        # we remove all the verbs returned by Onotagme
+        if annotation_data['start_pos'] in verbs_idx and "other" in annotation_data['categories']: continue
         # IF the difference is less than 2, then the two words are adjacent
         if annotation_data['start_pos'] - last_position < 2:
-            last_annotation = annotation_structure_handler(annotation_data, update_annotation_structure, last_annotation, text)
+            # IF the new annotation is into the last one, we skip the new.
+            if last_annotation['start_pos'] <= annotation_data['start_pos'] and \
+                    annotation_data['end_pos'] <= last_position: continue
+            last_annotation = annotation_structure_handler(annotation_data, update_annotation_structure,last_annotation, text)
         # ELSE we stored the previous combination, and then we create the new one
         else:
             if last_annotation is not None:
