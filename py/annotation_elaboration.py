@@ -37,9 +37,11 @@ def create_long_term_idx(abbreviations_dict, document):
 def long_term_text_elaboration(term_text, term_pos, term_components):
     # we are checking if the first character is a no alphanumeric term.
     # if it is true, this will be removed
-    if not term_components[0][0].isalpha() or term_components[0].lower() in stop_words:
-        term_pos  = term_pos + len(term_components[0]) + 1  # 1 is for a space
-        term_text = " ".join(term_components[1:])
+    try:
+        if not term_components[0][0].isalpha() or term_components[0].lower() in stop_words:
+            term_pos = term_pos + len(term_components[0]) + 1  # 1 is for a space
+            term_text = " ".join(term_components[1:])
+    except: None
     return term_pos, term_text
 
 
