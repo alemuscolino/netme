@@ -79,7 +79,7 @@ def joining_annotation(annotations_dict, text, verbs_idx):
     last_annotation    = None
     last_position      = -10
     # add annotation_id, and items()
-    for annotation_id, annotation_data in annotations_dict.items():
+    for annotation_data in annotations_dict:
         # we remove all the verbs returned by Onotagme
         if annotation_data['start_pos'] in verbs_idx and "other" in annotation_data['categories']: continue
         # IF the difference is less than 2, then the two words are adjacent
