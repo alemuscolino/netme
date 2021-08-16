@@ -10,3 +10,6 @@ The knowledge graph is created as follows:
 The final network will contain both directed and undirected edges according to the predictions made by the model.
 
 The user interface has been implemented in php, html, css and javascript. In addition, the cytoscape js library has been used to show the network 
+
+## pipeline
+![](https://github.com/[username]/[reponame]/blob/[branch]/image.jpg?raw=true)
