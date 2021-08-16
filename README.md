@@ -12,4 +12,4 @@ The final network will contain both directed and undirected edges according to t
 The user interface has been implemented in php, html, css and javascript. In addition, the cytoscape js library has been used to show the network 
 
 ## pipeline
-![](https://github.com/[username]/[reponame]/blob/[branch]/image.jpg?raw=true)
+![](https://github.com/alemuscolino/netme/blob/main/pipeline.png?raw=true)
