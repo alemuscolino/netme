@@ -64,8 +64,6 @@ The user interface has been implemented in php, html, css and javascript. In add
          cd /var/www/html/netme/class
          # edit database.phd
          # change the following rows
-         # @var, MySQL Username
-	 protected static $username = 'username';
-	 # @var, MySQL Password
-	 protected static $password = 'password';
+         protected static $username = 'username'
+	 protected static $password = 'password'
    
