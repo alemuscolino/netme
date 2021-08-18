@@ -13,3 +13,37 @@ The user interface has been implemented in php, html, css and javascript. In add
 
 ## pipeline
 ![](https://github.com/alemuscolino/netme/blob/main/pipeline.jpg?raw=true)
+
+## building
+### 1. prerequisites:
+   - MySQL
+   - php 7.4
+   - server apache 2
+   - git
+
+### 2. configuration:
+   - clone the netme repository:
+   
+         cd /var/www/html/
+         git clone https://github.com/alemuscolino/netme.git
+   
+   - create a new site-available configuration file or use the default one:
+   
+         # default one example
+         cd /etc/apache2/sites-available/
+         # edit 000-default.conf
+         nano 000-default.conf
+         # replace DocumentRoot /var/www/html with DocumentRoot /var/www/html/netme
+   
+   - active the apache 2 mod_rewrite module:
+   
+         sudo a2enmod rewrite
+         sudo service apache2 restart
+   
+   - active the short_tag in php.ini
+   
+         cd /etc/php/7.4/apache2
+         sudo nano php.ini
+         # change Off with On in short_tag parameter
+   
+   - import netme.sql dump into MySQL  
