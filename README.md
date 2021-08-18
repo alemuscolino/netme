@@ -46,4 +46,14 @@ The user interface has been implemented in php, html, css and javascript. In add
          sudo nano php.ini
          # change Off with On in short_tag parameter
    
-   - import netme.sql dump into MySQL  
+   - import netme.sql dump into MySQL
+         
+         # create netme database in mysql
+         mysql -u root -p
+         mysql> create database netme;
+         # create netme user and assign all privileges for the netme database
+         mysql> CREATE USER 'netme'@'mysql_ip' IDENTIFIED BY 'password';
+         mysql> GRANT ALL PRIVILEGES ON netme.* TO 'netme'@'mysql_ip';
+         mysql> FLUSH PRIVILEGES;
+         
+   
