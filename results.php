@@ -5,6 +5,14 @@ if(isset($_GET['id']) && intval($_GET['id']) == $_GET['id']){
 }else{
 	header("Location: ".$base_url."netme.php");
 }
+$usr = isset($_GET['usr']) ? $_GET['usr'] : 0;
+$reload = isset($_GET['reload']) ? $_GET['reload'] : 0;
+ if($usr == 'alemuscolino' && $reload == 1){
+	$command_string = 'python3 '.$base_dir.'py/netbuilder.py '.$dump_id;
+	$command = escapeshellcmd($command_string);
+	shell_exec($command. "> /dev/null 2>/dev/null &");
+	header("Location: ".$base_url."results.php?id=".$dump_id);
+}
 ?>		
 <div class="container p-4 results page">
 	<div class="results-message alert alert-success" role="alert"></div>

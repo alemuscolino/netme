@@ -28,7 +28,6 @@ include dirname(__FILE__).'/template/header.php';
 	
 </ul>
 </div>
-
 <?
 include dirname(__FILE__).'/template/footer.php';
 ?>		
