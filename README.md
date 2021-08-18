@@ -65,5 +65,5 @@ The user interface has been implemented in php, html, css and javascript. In add
          # edit database.phd
          # change the following rows
          protected static $username = 'username'
-	 protected static $password = 'password'
+	protected static $password = 'password'
    
