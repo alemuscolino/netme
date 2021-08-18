@@ -55,5 +55,8 @@ The user interface has been implemented in php, html, css and javascript. In add
          mysql> CREATE USER 'netme'@'mysql_ip' IDENTIFIED BY 'password';
          mysql> GRANT ALL PRIVILEGES ON netme.* TO 'netme'@'mysql_ip';
          mysql> FLUSH PRIVILEGES;
+         # import the netme tables
+         cd /var/www/html/netme
+         mysql -u netme -p netme < netme.sql
          
    
