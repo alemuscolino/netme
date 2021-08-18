@@ -59,4 +59,13 @@ The user interface has been implemented in php, html, css and javascript. In add
          cd /var/www/html/netme
          mysql -u netme -p netme < netme.sql
          
+   - change mysql username and password in database.php
+         
+         cd /var/www/html/netme/class
+         # edit database.phd
+         # change the following rows
+         # @var, MySQL Username
+	      protected static $username = 'username';
+	      # @var, MySQL Password
+	      protected static $password = 'password';
    
