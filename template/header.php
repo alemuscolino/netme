@@ -16,6 +16,13 @@ $session->start();
 		<script src="<?=$base_url?>js/cytoscape.min.js"></script>
 		<script src="<?=$base_url?>js/canvas2svg.js"></script>
 		<script src="<?=$base_url?>js/cytoscape-svg.js"></script>
+		
+		<script src="https://unpkg.com/layout-base@1.0.2/layout-base.js"></script>
+		<script src="https://unpkg.com/avsdf-base/avsdf-base.js"></script>
+		<script src="https://unpkg.com/cose-base@1.0.3/cose-base.js"></script>
+		<script src="https://unpkg.com/cytoscape-graphml/cytoscape-graphml.js"></script>
+		<script src="https://raw.githack.com/iVis-at-Bilkent/cytoscape.js-layvo/unstable/cytoscape-layvo.js"></script>
+		<script src="<?=$base_url?>vendor/cise.js"></script>
 
 		<link rel="stylesheet" href="<?=$base_url?>css/fontawesome/css/all.css">
 		<link rel="stylesheet" href="<?=$base_url?>css/bootstrap.min.css">
@@ -31,6 +38,10 @@ $session->start();
 		<script src="<?=$base_url?>vendor/datatables/dataTables.responsive.min.js"></script>
 		<script src="<?=$base_url?>vendor/datatables/dataTables.rowReorder.min.js"></script>
 		<script src="<?=$base_url?>vendor/datatables/select2.min.js"></script>
+		
+		
+		<!-- Dropzone -->
+		<script src="<?=$base_url?>vendor/dropzone/dist/dropzone.js"></script>
 		
 		<script>
 		var baseUrl = "<?=$base_url?>";
@@ -55,8 +66,15 @@ $session->start();
 								<a class="nav-link" href="<?=$base_url?>netme.php">NetMe</a>
 							</li>
 							<li class="nav-item">
+								<a class="nav-link" href="<?=$base_url?>latest.php">Your latest networks</a>
+							</li>
+							<li class="nav-item">
+								<a class="nav-link" href="<?=$base_url?>how-it-works.php">How it works</a>
+							</li>
+							<li class="nav-item">
 								<a class="nav-link" href="https://link.springer.com/chapter/10.1007/978-3-030-65351-4_31">Publications</a>
 							</li>
+							
 						</ul>
 					</div>
 				</div>
