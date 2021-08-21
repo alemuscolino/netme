@@ -11,10 +11,10 @@ The final network will contain both directed and undirected edges according to t
 
 The user interface has been implemented in php, html, css and javascript. In addition, the cytoscape js library has been used to show the network 
 
-## pipeline
+## PIPELINE
 ![](https://github.com/alemuscolino/netme/blob/main/pipeline.jpg?raw=true)
 
-## building
+## BUILDING
 ### 1. prerequisites:
    - MySQL
    - php 7.4
