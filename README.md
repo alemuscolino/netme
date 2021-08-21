@@ -66,4 +66,11 @@ The user interface has been implemented in php, html, css and javascript. In add
          # change the following rows
          protected static $username = 'username'
 	     protected static $password = 'password'
+	     
+   - download javascript libraries
+   
+         # create the directory vendor under the netme archive
+	     cd /var/www/html/netme
+	     mkdir vendor
+	 
    
