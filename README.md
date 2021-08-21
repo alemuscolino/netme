@@ -91,4 +91,6 @@ The user interface has been implemented in php, html, css and javascript. In add
 	     # finally, download dropzone from the following repo github in zip format: https://github.com/dropzone/dropzone
 	     # unzip the archive and rename in dropzone
 	     # move this last under vendor directory
+
+### 3. INSTALL python3, pip3 and other libraries to www-data user: 
    
