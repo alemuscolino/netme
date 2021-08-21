@@ -112,7 +112,7 @@ The user interface has been implemented in php, html, css and javascript. In add
     pip3 install -U spacy
     pip3 install frontend
     python3 -m spacy download en_core_web_sm
-    # download nltk stopword
+    # download nltk stopword and punkt
     python3
     import nltk
     nltk.download('stopwords')
