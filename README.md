@@ -107,7 +107,7 @@ The user interface has been implemented in php, html, css and javascript. In add
     pip3 install treetaggerwrapper
     pip3 install mysql-connector-python
     pip3 install xml-python
-    pip3 install fitz
+    pip3 install pymupdf
     pip3 install scipy
     pip3 install -U spacy
     pip3 install frontend
