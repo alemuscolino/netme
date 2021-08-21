@@ -92,6 +92,19 @@ The user interface has been implemented in php, html, css and javascript. In add
 	     # unzip the archive and rename in dropzone
 	     # move this last under vendor directory
 
-### 3. install python3, pip3 and other libraries to www-data user:
+### 3. install libraries to www-data user:
+    # create and change owner to the following directories
+    sudo mkdir /var/www/.local
+    sudo mkdir /var/www/.cache
+    sudo mkdir /var/www/nltk_data
+    sudo chown www-data.www-data /var/www/.local
+    sudo chown www-data.www-data /var/www/.cache
+    sudo chown www-data.www-data /var/www/nltk_data
+    # install pip3 and python3 for the www-data user
+    sudo su -l www-data -s /bin/bash
+    pip3 install numpy
+    pip3 install nltk
+    
+ 
 
    
