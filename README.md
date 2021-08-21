@@ -79,5 +79,13 @@ The user interface has been implemented in php, html, css and javascript. In add
 	     #   - Extension:                           "Responsive; RowReorder"
 	     #   - Step 3. Pick a download method:      "Download"
 	     #   - finally, click on Download files button
-	 
+	     # unzip the directory, and then move all the elements of such archve under vendor directory
+	     # after that remove the following directory
+	     cd /var/www/html/netme/vendor
+	     mv DataTables-version datatables
+	     mv Responsive-version responsive
+	     mv RowReorder-version rowreorder
+	     # next download select2 (source code zip)from the following github repo: https://github.com/select2/select2/releases/tag/4.1.0-rc.0
+	     # unzip and rename the arche in select2
+	     # move this last under the vendor directory
    
