@@ -72,5 +72,12 @@ The user interface has been implemented in php, html, css and javascript. In add
          # create the directory vendor under the netme archive
 	     cd /var/www/html/netme
 	     mkdir vendor
+	     # download datatables through the website: https://datatables.net/download/index
+	     # you need to select the following options:
+	     #   - Step 1. Choose a styling framework:  "DataTables"
+	     #   - Step 2. Select packages:             "DataTables"
+	     #   - Extension:                           "Responsive; RowReorder"
+	     #   - Step 3. Pick a download method:      "Download"
+	     #   - finally, click on Download files button
 	 
    
