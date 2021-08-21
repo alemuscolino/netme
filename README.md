@@ -104,7 +104,14 @@ The user interface has been implemented in php, html, css and javascript. In add
     sudo su -l www-data -s /bin/bash
     pip3 install numpy
     pip3 install nltk
-    
- 
-
-   
+    pip3 install treetaggerwrapper
+    pip3 install mysql-connector-python
+    pip3 install xml-python
+    pip3 install fitz
+    pip3 install scipy
+    pip3 install -U spacy
+    python3 -m spacy download en_core_web_sm
+    # download nltk stopword
+    python3
+    import nltk
+    nltk.download('stopwords')   
