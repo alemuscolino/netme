@@ -88,4 +88,7 @@ The user interface has been implemented in php, html, css and javascript. In add
 	     # next download select2 (source code zip)from the following github repo: https://github.com/select2/select2/releases/tag/4.1.0-rc.0
 	     # unzip and rename the arche in select2
 	     # move this last under the vendor directory
+	     # finally, download dropzone from the following repo github in zip format: https://github.com/dropzone/dropzone
+	     # unzip the archive and rename in dropzone
+	     # move this last under vendor directory
    
