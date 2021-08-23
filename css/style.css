@@ -239,3 +239,17 @@ div.select-source .source .button{
 .my-shadow{
 	text-shadow: 10px 10px 105px #007bff;
 }
+
+.img-container {
+	flex: 0 0 100%; 
+	max-width: 100%;
+}
+
+.img-container-70 {
+	flex: 0 0 70%; 
+	max-width: 70%;
+}
+
+.img-shadow {
+	box-shadow: 0 3px 10px rgb(0 0 0 / 0.2);
+}

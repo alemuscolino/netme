@@ -29,15 +29,15 @@ $session->start();
 		<link rel="stylesheet" href="<?=$base_url?>css/style.css">
 		
 		<!-- Datatables -->
-		<link href="<?=$base_url?>vendor/datatables/dataTables.bootstrap4.min.css" rel="stylesheet" type="text/css">
-		<link href="<?=$base_url?>vendor/datatables/responsive.dataTables.min.css" rel="stylesheet" type="text/css">
-		<link href="<?=$base_url?>vendor/datatables/rowReorder.dataTables.min.css" rel="stylesheet" type="text/css">
-		<link href="<?=$base_url?>vendor/datatables/select2.min.css" rel="stylesheet" type="text/css">
-		<script src="<?=$base_url?>vendor/datatables/jquery.dataTables.min.js"></script>
-		<script src="<?=$base_url?>vendor/datatables/dataTables.bootstrap4.min.js"></script>
-		<script src="<?=$base_url?>vendor/datatables/dataTables.responsive.min.js"></script>
-		<script src="<?=$base_url?>vendor/datatables/dataTables.rowReorder.min.js"></script>
-		<script src="<?=$base_url?>vendor/datatables/select2.min.js"></script>
+		<link href="<?=$base_url?>vendor/datatables/css/dataTables.bootstrap4.min.css" rel="stylesheet" type="text/css">
+		<link href="<?=$base_url?>vendor/responsive/css/responsive.dataTables.min.css" rel="stylesheet" type="text/css">
+		<link href="<?=$base_url?>vendor/rowreorder/css/rowReorder.dataTables.min.css" rel="stylesheet" type="text/css">
+		<link href="<?=$base_url?>vendor/select2/dist/css/select2.min.css" rel="stylesheet" type="text/css">
+		<script src="<?=$base_url?>vendor/datatables/js/jquery.dataTables.min.js"></script>
+		<script src="<?=$base_url?>vendor/datatables/js/dataTables.bootstrap4.min.js"></script>
+		<script src="<?=$base_url?>vendor/responsive/js/dataTables.responsive.min.js"></script>
+		<script src="<?=$base_url?>vendor/rowreorder/js/dataTables.rowReorder.min.js"></script>
+		<script src="<?=$base_url?>vendor/select2/dist/js/select2.min.js"></script>
 		
 		
 		<!-- Dropzone -->

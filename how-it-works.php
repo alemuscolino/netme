@@ -7,56 +7,180 @@ include dirname(__FILE__).'/template/header.php';
 	
 	<h1 class="text-center text-primary">How it works</h1>
 	<h2>Search interface</h2>
-	<p class="text-justify">Netme offers a front-end developed in PHP and Javascript, in which the network rendering is performed with the CytoscapeJS library. 
-	Its back-end, integrating Tagme, is instead written in Java, with the support of the both Python NLTK and SpaCy libraries for the NLP module.
+	<p class="text-justify">NETME offers a front-end developed in PHP and Javascript, in which the network rendering is performed using the CytoscapeJS library. 
+	Its back-end, integrating Tagme, is written in Java, with the support of the Python NLTK and SpaCy libraries for the NLP module.
 	Pubmed search is performed with the Entrez Programming Utilities, 
 	a set of server-side programs providing a stable interface to the Entrez database and to the query system at the 
-	National Center for Biotechnology Information (NCBI). 
-	Netme is equipped with an easy-to-use web interface providing three major functions: 
-	<ul>
-	<li>Pubmed query-based network annotation;</li> 
-	<li>User-provided free-text network annotation;</li> 
-	<li>User-provided PDF documents network annotation.</li> 
-	</ul>
-	</p>
-	<p class="text-justify">
-	In the query-based network annotation, the user provides a list of keywords, which are employed to run a query on Pubmed, or a list of article ids. 
-	The top resulting papers are retrieved and the network inference procedure is performed. Several parameters can be defined by the user such as: 
-	the number of top article to retrieve from Pubmed, and the criteria used to sort papers (relevance or date).
+	National Center for Biotechnology Information (NCBI).</p>
 
-	In the user-provided free-text network annotation, users provide a free text which is then input to the network inference procedure.
+	<div class="row mb-3 d-flex justify-content-center">
+		<div class="col-md-6 text-center img-container-70">
+			<img src="<?=$base_url?>img/tutorial/homepage1.png" width="100%" class="text-center img-shadow">
+		</div>
+	</div>
 
-	In the user-provided PDF documents network annotation, users provide a set of PDF documents which are then input to the network inference procedure.
-	</p>
+	<p>From the homepage, clicking on the blue <b>NETME</b> button sends the user to the network creation page.</p>
+
 	<hr>
+	<h2>Create your network from</h2>
+	<p class="text-justify">The creation page offers three easy-to-use main interfaces to build a biological network:</p>
+	<ul class="mb-5">
+		<li>Pubmed query-based network annotation;</li> 
+		<li>User-provided free-text network annotation;</li> 
+		<li>User-provided PDF documents network annotation.</li> 
+	</ul>
+
+	<h3>Pubmed</h3>
+	<div class="row mb-5 d-flex justify-content-center">
+		<div class="col-md-6 text-center img-container">
+			<img src="<?=$base_url?>img/tutorial/search1.PNG" width="100%" class="text-center mb-3 img-shadow">
+			<p class="text-justify">Pubmed queries require the user to provide a list of keywords, which will will be used to perform a query on Pubmed to retrieve the most relevant articles, which will be given as input to the network inference procedure. Additionally, users can customize their queries if they wish to by clicking on the advanced search tab. NETME allows the user to chose wether to use full texts or only abstracts, wether to search using keywords or selecting specific articles (by using their id). Users can also specify the number of papers to extract and the criteria used to sort papers (relevance or date).</p>
+		</div>
+	</div>
+
+	<h3>Text input</h3>
+	<div class="row mb-5">
+		<div class="col-md-6 text-center img-container">
+			<img src="<?=$base_url?>img/tutorial/search2.PNG" width="100%" class="text-center mb-3 img-shadow">
+			<p class="text-justify">Textual queries require the user to give a free text, which is then provided as an input to the network inference procedure.</p>
+		</div>
+	</div>
+
+	<h3>PDF files</h3>
+	<div class="row mb-5">
+		<div class="col-md-6 text-center img-container">
+			<img src="<?=$base_url?>img/tutorial/search3.PNG" width="100%" class="text-center mb-3 img-shadow">
+			<p class="text-justify">In the PDF provided queries, users provide a set of PDF documents which are then fiven to the network inference procedure.</p>
+		</div>
+	</div>
+
+	<hr>
+
+	<h3>Console</h3>
+	<div class="row mb-5">
+		<div class="col-md-6 text-center">
+			<img src="<?=$base_url?>img/tutorial/console.png" width="100%" class="text-center img-shadow">
+		</div>
+		<div class="col-md-6">
+				<p class="text-justify">The console shows the elaboration state. In addition it reports the biology elements and their relationships for each annotated document. At the end of elaboration you will be redirect to the page results.</p>
+		</div>
+	</div>
+
+	<hr>
+
 	<h2>Generated network</h2>
-	<h3>Lorem ipsum</h3>
+	<h3>Visualization settings</h3>
+
+	<h3>Parameters</h3>
 	<div class="row mb-5">
 		<div class="col-md-6 text-center">
-			<img src="<?=$base_url?>img/network_1.png" width="100%" class="text-center">
+			<img src="<?=$base_url?>img/tutorial/parameters.png" width="100%" class="text-center img-shadow">
 		</div>
 		<div class="col-md-6">
-				<p class="text-justify">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+			<p class="text-justify">NETME allows the user to fine-tune the network visualization through some customizable parameters. Those are:
+				<ul>
+				<li><b>Min rho</b>: minimun "confidence" required for annotations, varies between 0 and 1. A low value shows many annotations accepting more noise, while a high one shows only high confidence one, hiding more nodes</li> 
+				<li><b>Max items</b>: puts a cap on the maximum number of nodes that get displayed</li> 
+				<li><b>Min weight</b>: filters out edges which have a "score" lower than specified. A higher value tends to filter out many edges which are deemed "unsure" or "less important" by the system. Lowering this threshold introduces more of those "risky" edges. </li> 
+				<li><b>Min bio</b>: This parameter is high when the verb expressing the relationship is very common in the biological literature. Lowering this threshold shows more relationships between elements using "common-language" verbs. Increasing it instead allows to only show highly specialized language.</li> 
+				</ul>
+			</p>
 		</div>
 	</div>
-	<h3>Lorem ipsum</h3>
+
+	<h3>Nodes table</h3>
 	<div class="row mb-5">
 		<div class="col-md-6 text-center">
-			<img src="<?=$base_url?>img/network_2.png" width="100%" class="text-center">
+			<img src="<?=$base_url?>img/tutorial/nodes.png" width="100%" class="text-center img-shadow">
 		</div>
 		<div class="col-md-6">
-				<p class="text-justify">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+			<p class="text-justify">
+				In addition to those parameters, NETME offers a table containing all the nodes of the network. It allows to easy access to the option to hide them/visualize them.
+			</p>
 		</div>
 	</div>
-	<h3>Lorem ipsum</h3>
+
+	<h3>Edges table</h3>
 	<div class="row mb-5">
 		<div class="col-md-6 text-center">
-			<img src="<?=$base_url?>img/network_3.png" width="100%" class="text-center">
+			<img src="<?=$base_url?>img/tutorial/edges.png" width="100%" class="text-center img-shadow">
 		</div>
+	
 		<div class="col-md-6">
-				<p class="text-justify">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+			<p class="text-justify">
+				Edges are also visualized in a table where the system shows the reference paper/snippet of text where such relation was found. Green edges indicate important biological relationship, while red ones are less key.
+			</p>
+		</div>
+
+	</div>
+
+	<h3>Legend table</h3>
+	<div class="row mb-5">
+		<div class="col-md-6 text-center">
+			<img src="<?=$base_url?>img/tutorial/legend.png" width="100%" class="text-center img-shadow">
+		</div>
+		
+		<div class="col-md-6">
+			<p class="text-justify">
+				NETME shows on the right a legend with several entity types and their respective visualization color. This menu allows to show/hide only specific biological categories.	
+			</p>
 		</div>
 	</div>
+
+	<h3>Network</h3>
+	<div class="row mb-5">
+		<div class="col-md-6 text-center">
+			<img src="<?=$base_url?>img/tutorial/graph.png" width="100%" class="text-center img-shadow">
+		</div>
+		<div class="col-md-6">
+				<p class="text-justify">
+					This section shows the final network based on the user's query. The user may click on a node of the network to view all incoming and outgoing connections, or she may click on an edge to display its type and the verbal relation between the nodes it connects. 
+					Note that, the node's name has been truncated to 8 characters, therefore, the entire name is shown only when the mouse pointer is over the node.
+				</p>
+		</div>
+	</div>
+
+	<h3>Pubmed documents set</h3>
+	<div class="row mb-5">
+		<div class="col-md-6 text-center">
+			<img src="<?=$base_url?>img/tutorial/network_3_1.png" width="100%" class="text-center img-shadow">
+		</div>
+		<div class="col-md-6">
+				<p class="text-justify">
+					This table lists the Pubmed documents that have been downloaded for building the final NETME network. 
+					If you need more informations about a document, you may click on the PMCID (full-text) or PMID (abstract).    
+				</p>
+		</div>
+	</div>
+
+	<h3>OntoTAGME annotations</h3>
+	<div class="row mb-5">
+		<div class="col-md-6 text-center">
+			<img src="<?=$base_url?>img/tutorial/network_3_2.png" width="100%" class="text-center img-shadow">
+		</div>
+		<div class="col-md-6">
+				<p class="text-justify">
+					This table lists all the annotations (nodes) extracted by OntoTAGME.
+					The <b>spot</b> column contains the entity within a sentence of a document. 
+					Instead the <b>word</b> column contains the real name of the entity in OntoTAGME. 
+					The <b>category</b> column contains the type of the entity.
+					If the <b>rho</b> is small, then the entity is not so relavant into the corpus of the documents set.
+				</p>
+		</div>
+	</div>
+
+	<h3>Relationships table</h3>
+	<div class="row mb-5">
+		<div class="col-md-6 text-center">
+			<img src="<?=$base_url?>img/tutorial/network_3_3.png" width="100%" class="text-center img-shadow">
+		</div>
+		<div class="col-md-6">
+				<p class="text-justify">
+					This table contains all the relationships' properties.
+					More informations about mrho, bio, etc. have been explained in the <b>Parameters</b> section.
+				</p>
+		</div>
+	</div>		
 </div>
 
 <?
@@ -147,7 +271,7 @@ $(document).ready(function() {
 						showError("Error during processing. "+data.error);
 					}else{
 						goToPage("results.php?id="+data.response);
-						showMessage("Netme batch elaboration in progress. Your ID is "+data.response+". You will be redirected to the results page at <a href='results.php?id="+data.response+"'>this link</a> in 5 seconds.");
+						showMessage("NETME batch elaboration in progress. Your ID is "+data.response+". You will be redirected to the results page at <a href='results.php?id="+data.response+"'>this link</a> in 5 seconds.");
 					}
 				},
 				error : function(e){
