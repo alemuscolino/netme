@@ -111,6 +111,8 @@ The user interface has been implemented in php, html, css and javascript. In add
     pip3 install scipy
     pip3 install -U spacy
     pip3 install frontend
+    pip3 install lxml
+    pip3 install six
     python3 -m spacy download en_core_web_sm
     # download nltk stopword and punkt
     python3
