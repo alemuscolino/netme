@@ -24,10 +24,10 @@ class NetBuilder:
 	stop_words = set(stopwords.words('english')) 
 	sent_detector = nltk.data.load('tokenizers/punkt/english.pickle')
 	nlp = spacy.load("en_core_web_sm")
-	#nlp.add_pipe("merge_entities")
-	#nlp.add_pipe("merge_noun_chunks")
-	nlp.add_pipe(nlp.create_pipe("merge_entities"))
-	nlp.add_pipe(nlp.create_pipe("merge_noun_chunks"))
+	nlp.add_pipe("merge_entities")
+	nlp.add_pipe("merge_noun_chunks")
+	#nlp.add_pipe(nlp.create_pipe("merge_entities"))
+	#nlp.add_pipe(nlp.create_pipe("merge_noun_chunks"))
 	negation = None
 	conjunction = None
 	bioterms = None
@@ -242,7 +242,7 @@ class NetBuilder:
 	def sub_list(self, idlist, n, retmax, sup, len_id_list):
 		return idlist[n * retmax: sup] if sup < len_id_list else idlist[n * retmax:]
 
-	def articles_fetch(self, idlist, apikey, retmax=20, dbtype="pmc"):
+	def articles_fetch_OLD2(self, idlist, apikey, retmax=20, dbtype="pmc"):
 		#self.articles = dict()
 		try:
 			url_fetch = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
@@ -266,7 +266,29 @@ class NetBuilder:
 			self.write_log("Error in articles_fetch: "+str(e))
 			return None
 	
-	
+	def articles_fetch(self, idlist, dbtype="pmc", retmax=100):
+		try:
+			url_fetch = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
+			len_id_list = len(idlist)
+			for n in range((len_id_list // retmax) + 1):
+				sup = (n + 1) * retmax
+				par = {
+					'db'     : dbtype,
+					'id'     : ','.join(self.sub_list(idlist, n, retmax, sup, len_id_list)),
+					'retmode': 'xml',
+					'apikey' : self.apikey,
+				}
+				r = requests.post(url=url_fetch, params=par)
+				if dbtype == "pmc":
+					r = etree.fromstring(r.content,  parser=etree.XMLParser(huge_tree=True))
+					self.pubmed_central_parser(r)
+				else:
+					r = ElementTree.fromstring(r.content)
+					self.pubmed_parser(r)
+		except Exception as e:
+			print(e)
+			self.write_log("Error in articles_fetch: "+str(e))
+			return None
 			
 	################# PDF PARSER #################
 	

@@ -24,6 +24,8 @@ $(document).ready(function(){
 		var _this = this;
 		var source = $(_this).data("source");
 		$(".collapse.source-content").collapse('hide');
+		$(".select-source .button.text-success").addClass("text-primary").removeClass("text-success");
+		$(_this).find(".button").addClass("text-success");
 		switch(source){
 			case "db":
 				$("#source_db").collapse('toggle');
@@ -104,6 +106,7 @@ $(document).ready(function(){
 		}
 	});
 	
+
 	//Min rho controller
 	$(".page.results #minrho").on("input", function(){
 		$("#minrho_val").val($(this).val());
@@ -405,8 +408,9 @@ function getDump(){
 }
 
 function initVariable(){
-	$("#maxitems").attr({"max" : netdata.response.nodes.length ,"min" : 0, "value" : netdata.response.nodes.length});
-	$("#maxitems_val").val(netdata.response.nodes.length);
+	maxitems_val = netdata.response.nodes.length > 50 ? 50 : netdata.response.nodes.length;
+	$("#maxitems").attr({"max" : netdata.response.nodes.length ,"min" : 0, "value" : maxitems_val});
+	$("#maxitems_val").val(maxitems_val);
 }
 
 function updateVariables(){
@@ -429,7 +433,8 @@ function updateVariables(){
 function createTableLatestSearches(){
 	var fdata = new FormData();
 	var latest_searches = [];
-	fdata.append("function",  "latest_searches");	
+	fdata.append("function",  "latest_searches");
+	fdata.append("usr",  usr);		
 	$.ajax({
 		url: "xhr/request.php",
 		type : 'POST',
@@ -641,11 +646,16 @@ function makeNet(){
 	for(n in net){
 		if('size' in net[n].data){
 			net[n].data.size = Math.sqrt(parseFloat(net[n].data.size))*3;
-			var k = categories.indexOf(netdata.response.annotations['word_list'][net[n].data.label].categories[0]);
+			var k = categories.indexOf(netdata.response.annotations['word_list'][net[n].data.label].categories[netdata.response.annotations['word_list'][net[n].data.label].categories.length - 1]);
 			if(k==-1){
 				var k = categories.indexOf("other");
 			}
 			net[n].data.color = palette[k];
+			net[n].data.name = net[n].data.id;
+			net[n].data.name_t = net[n].data.id;
+			if(net[n].data.id.length > 5){
+				net[n].data.name_t = net[n].data.id.substring(0, 5) + '...';
+			}
 		}
 	}
 	return {"net": net, "edgeslist": edgeslist};
@@ -654,7 +664,6 @@ function makeNet(){
 function createGraph(){
 	$("#graph").html("");
 	net = makeNet();
-	
 	cy = cytoscape({
 		container: $('#graph'),
 		elements: net.net,
@@ -664,7 +673,7 @@ function createGraph(){
 				selector: 'node',
 				style: {
 					'background-color': 'data(color)',
-					'label': 'data(id)',
+					'label': 'data(name_t)',
 					'width': 'data(size)',
 					'height': 'data(size)',
 				}
@@ -681,12 +690,49 @@ function createGraph(){
 			}
 		],
 		layout: {
-			name: 'concentric'
+			name: 'concentric',
+			fit: true, // whether to fit the viewport to the graph
+			spacingFactor: 0.5,
+			padding: 5, // the padding on fit
+			minNodeSpacing: 30,
+			/*name: 'cise',
+			animate: false,
+			refresh: 10, 
+			animationDuration: undefined,
+			animationEasing: undefined,
+			fit: false,
+			padding: 5,
+			nodeSeparation: 1,
+			idealInterClusterEdgeLengthCoefficient: 1.4,
+			allowNodesInsideCircle: false,
+			maxRatioOfNodesInsideCircle: 0.1,
+			springCoeff: 0.05,
+			nodeRepulsion: 20000,
+			gravity: 0.25,
+			gravityRange: 3.8, */
+			/* name: 'cose',
+			idealEdgeLength: 100,
+			nodeOverlap: 20,
+			refresh: 20,
+			fit: true,
+			padding: 30,
+			randomize: false,
+			componentSpacing: 100,
+			nodeRepulsion: 400000,
+			edgeElasticity: 100,
+			nestingFactor: 5,
+			gravity: 80,
+			numIter: 1000,
+			initialTemp: 200,
+			coolingFactor: 0.95,
+			minTemp: 1.0 */
 		} 
 	});
 	
 	// bind tapstart to edges and highlight the connected nodes
 	cy.on('tap', function(event) {
+		/* var connected = event.target.connectedNodes();
+		connected.addClass('highlight'); */
 		if(event.target === cy ){
 			$("#graph-list thead").html('');
 			$("#graph-list tbody").html('<tr><td colspan="2"><b>Tap on nodes or edges to show more info</b></td></tr>');
@@ -701,6 +747,32 @@ function createGraph(){
 			}
 		}
 	});
+	
+	function makePopper(ele) {
+		let ref = ele.popperRef(); // used only for positioning
+
+		ele.tippy = tippy(ref, { // tippy options:
+		  content: () => {
+			let content = document.createElement('div');
+			content.innerHTML = ele.data().label;
+
+			return content;
+		  },
+		  trigger: 'manual' // probably want manual mode
+		});
+	}
+
+	cy.ready(function() {
+		cy.elements().forEach(function(ele) {
+		  makePopper(ele);
+		});
+	});
+
+	cy.elements().unbind('mouseover');
+	cy.elements().bind('mouseover', (event) => event.target.tippy.show());
+
+	cy.elements().unbind('mouseout');
+	cy.elements().bind('mouseout', (event) => event.target.tippy.hide());
 }
 
 function displayEdges(edgeslist){

@@ -8,10 +8,10 @@ class Database
 	protected static $database = 'netme';
 
 	# @var, MySQL Username
-	protected static $username = 'username';
+	protected static $username = 'root';
 
 	# @var, MySQL Password
-	protected static $password = 'password';
+	protected static $password = 'tagmetagme85';
 
 	# @object, The PDO object
 	private $pdo;

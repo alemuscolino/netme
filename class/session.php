@@ -306,7 +306,7 @@ class Session
 				self::$ip = self::get_ip();
 				self::$geo = self::get_geo();
 				
-				$db_session = $result = self::$db->query("SELECT * FROM sessions WHERE ip = :ip AND TIME_TO_SEC(TIMEDIFF(CURRENT_TIMESTAMP(), last_active)) < :session_age", array("ip"=>self::$ip, "session_age"=>self::$SESSION_AGE));
+				$db_session = self::$db->query("SELECT * FROM sessions WHERE ip = :ip AND TIME_TO_SEC(TIMEDIFF(CURRENT_TIMESTAMP(), last_active)) < :session_age", array("ip"=>self::$ip, "session_age"=>self::$SESSION_AGE));
 				
 				if (function_exists('session_status'))
         {
@@ -359,6 +359,9 @@ class Session
 										return true;
 									}
 								}else{
+									if(count($db_session) == 0){
+											self::$db->query("INSERT INTO sessions (ip, location, country, host, token) VALUES (:ip, :location, :country, :host, :token)", array("ip"=>self::$ip, "location"=>self::$geo["location"], "country"=>self::$geo["country"], "host"=>self::$geo["host"], "token"=>$_SESSION['token']));
+									}
 									return true;
 								}
 							}else{
